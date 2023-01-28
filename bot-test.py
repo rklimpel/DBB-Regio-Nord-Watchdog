@@ -21,11 +21,13 @@ class TableCrawler():
 
     def get_teams(self):
 
-        options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
-
-        # Start the webdriver
-        driver = webdriver.Chrome(options=options)
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--disable-dev-shm-usage') 
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--disable-gpu')
+        driver = webdriver.Chrome(chrome_options=chrome_options)
 
         # Navigate to the webpage
         driver.get(self.url)
@@ -123,7 +125,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(update.message.text)
 
 def main() -> None:
-    application = Application.builder().token(Path('token').read_text()).build()
+    application = Application.builder().token("5836445214:AAEYfTMmiEtFt9tmHyvZ8zYYusXRERjiLfM").build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("teams", teams_command))
