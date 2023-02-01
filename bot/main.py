@@ -8,6 +8,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 from scraper import TableCrawler, GameCrawler
 import stringify
+import data_handler
 
 class TelegramHandler:
 
@@ -48,19 +49,36 @@ class TelegramHandler:
         await update.message.reply_text(table_string)
 
     async def team_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        games = GameCrawler().crawl()
-        first_10_games = game_list[:10]
-        await update.message.reply_text('/n'.join(first_10_games))
+        if len(context.args) == 0:
+            await update.message.reply_text("Bitte gib einen Teamnamen an.")
+            return
+        team_name = ' '.join(context.args)
+        games_string = "Spiele " + team_name + ", Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
+        games = GameCrawler().get_all_games(team=team_name)
+        for game in games:
+            if game['team_home_score'] == '':
+                games_string += stringify.upcoming_game_as_string(game) + "\n"
+            else:
+                games_string += stringify.played_game_as_string(game) + "\n"
+        await update.message.reply_text(games_string)
 
     async def recent_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        game_list = GameCrawler().get_recent_games()
+        if len(context.args) > 0:
+            team_name = ' '.join(context.args)
+            game_list = GameCrawler().get_recent_games(team=team_name)
+        else:
+            game_list = GameCrawler().get_recent_games()
         games_string = "Letzte Spiele, Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
         for game in game_list:
             games_string += stringify.played_game_as_string(game) + "\n"
         await update.message.reply_text(games_string)
 
     async def next_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        game_list = GameCrawler().get_upcoming_games()
+        if len(context.args) > 0:
+            team_name = ' '.join(context.args)
+            game_list = GameCrawler().get_upcoming_games(team=team_name)
+        else:
+            game_list = GameCrawler().get_upcoming_games()
         games_string = "Nächste Spiele, Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
         for game in game_list:
             games_string += stringify.upcoming_game_as_string(game) + "\n"

@@ -76,7 +76,7 @@ class GameCrawler(DBBRegioCrawler):
 
     url = "https://www.basketball-bund.net/static/#/liga/36563/spielplan"
 
-    def get_all_games(self):
+    def get_all_games(self, team=None):
 
         def remove_duplicated_teams(game):
             if game[2] in game[4] and game[4].replace(game[2],"") != "":
@@ -100,10 +100,12 @@ class GameCrawler(DBBRegioCrawler):
                     "team_home_score": game[3].split(":")[0].lstrip().rstrip(),
                     "team_away_score": game[3].split(":")[1].lstrip().rstrip(),
                 })
+        if team != None:
+            pretty_games = self.filter_games_for_team(pretty_games, team)
         return pretty_games
 
-    def get_recent_games(self, count=10):
-        games = self.get_all_games()
+    def get_recent_games(self, team=None, count=10):
+        games = self.get_all_games(team)
         for i, game in enumerate(games):
             if game["team_home_score"] == "" and game["team_away_score"] == "":
                 games = games[:i]
@@ -112,10 +114,18 @@ class GameCrawler(DBBRegioCrawler):
         games.reverse()
         return games
 
-    def get_upcoming_games(self, count=10):
-        games = self.get_all_games()
+    def get_upcoming_games(self, team=None, count=10):
+        games = self.get_all_games(team)
         for i, game in enumerate(games):
             if game["team_home_score"] == "" and game["team_away_score"] == "":
                 games = games[i:]
                 break
         return games[:count]
+
+    def filter_games_for_team(self, games, team):
+        team = team.lower()
+        team_games = []
+        for game in games:
+            if team in game["team_home"].lower() or team in game["team_away"].lower():
+                team_games.append(game)
+        return team_games
