@@ -56,7 +56,7 @@ class TableCrawler(DBBRegioCrawler):
         return teams
 
     def get_table(self):
-        table_data = self.get_table_data()
+        table_data = self.read_table_from_page(self.url)
         standings = []
         for row in table_data:
             standings.append({
@@ -77,10 +77,20 @@ class GameCrawler(DBBRegioCrawler):
     url = "https://www.basketball-bund.net/static/#/liga/36563/spielplan"
 
     def get_all_games(self):
+
+        def remove_duplicated_teams(game):
+            if game[2] in game[4] and game[4].replace(game[2],"") != "":
+                game[4] = game[4].replace(game[2], "")
+            elif game[4] in game[2] and game[2].replace(game[4],"") != "":
+                game[2] = game[2].replace(game[4], "")
+            return game
+
         games = self.read_table_from_page(self.url)
         pretty_games = []
         for game in games:
+            print(game)
             if len(game) > 1:
+                remove_duplicated_teams(game)
                 pretty_games.append({
                     "date": game[0].split(" ")[0],
                     "time": game[0].split(" ")[1],
@@ -92,11 +102,20 @@ class GameCrawler(DBBRegioCrawler):
                 })
         return pretty_games
 
-    def get_recent_games(self):
+    def get_recent_games(self, count=10):
         games = self.get_all_games()
-        for game in games:
-            print(game)
+        for i, game in enumerate(games):
+            if game["team_home_score"] == "" and game["team_away_score"] == "":
+                games = games[:i]
+                break
+        games = games[-count:]
+        games.reverse()
         return games
 
-    def get_upcoming_games(self):
-        pass
+    def get_upcoming_games(self, count=10):
+        games = self.get_all_games()
+        for i, game in enumerate(games):
+            if game["team_home_score"] == "" and game["team_away_score"] == "":
+                games = games[i:]
+                break
+        return games[:count]
