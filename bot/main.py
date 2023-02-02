@@ -2,19 +2,29 @@ from pathlib import Path
 import re
 import logging
 import datetime
+import threading
 from telegram import __version__ as TG_VER
-from telegram import ForceReply, Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import ForceReply, Update, Bot
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, Updater
 
 from scraper import TableCrawler, GameCrawler
 import stringify
 import data_handler
+from database import PersistenceHandler
+from models import Game, TableEntry, User
 
 class TelegramHandler:
 
     def __init__(self, token: str) -> None:
         self.application = Application.builder().token(token).build()
         self.register_commands()
+        self.setup_job_queue()
+        self.token = token
+        self.subscribed_chat_ids = []
+
+    def setup_job_queue(self):
+        self.job_queue = self.application.job_queue
+        #self.job_queue.run_repeating(self.send_subscribed_games, interval=10, first=20)
 
     def register_commands(self):
         self.application.add_handler(CommandHandler("start", self.start_command))
@@ -24,6 +34,7 @@ class TelegramHandler:
         self.application.add_handler(CommandHandler("spiele", self.team_games_command))
         self.application.add_handler(CommandHandler("letzte_spiele", self.recent_games_command))
         self.application.add_handler(CommandHandler("naechste_spiele", self.next_games_command))
+        self.application.add_handler(CommandHandler("subscribe", self.subscribe_command))
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.echo))
 
     def start(self) -> None:
@@ -98,6 +109,38 @@ class TelegramHandler:
     async def echo(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(update.message.text)
 
+    async def subscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        persistenceHandler = PersistenceHandler()
+        chat_id = update.message.chat_id
+        user_name = update.effective_user.name
+        user = User({'chat_id': chat_id, 'name': user_name})
+        teams = TableCrawler().get_teams()
+        arg_team_name = team_name = ' '.join(context.args)
+        subscribed_team = None
+        for team in teams:
+            if arg_team_name.lower() in team.lower():
+                user.subscribed_teams.append(team)
+                subscribed_team = team
+
+        if subscribed_team is None:
+            await update.message.reply_text("Team not found")
+            return
+        else:
+            print(user.to_JSON())
+            print(user.subscribed_teams)
+            persistenceHandler.insert_user(user)
+            await update.message.reply_text("Du hast Benachrichtigungen aktiviert für das Team '" + subscribed_team +"'")
+            subscriptions_string = "Aktuell bist du auf folgende Teams subscribed:\n"
+            for team in user.subscribed_teams:
+                subscriptions_string += team + "\n"
+            await update.message.reply_text(subscriptions_string)
+            return
+
+    async def send_subscribed_games(self, context: ContextTypes.DEFAULT_TYPE):
+        # games = GameCrawler().get_all_games()
+        # database.insert_all_games(games)
+        await context.bot.send_message(chat_id='642529287', text='One message every 10 seconds')
+
 def main() -> None:
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -107,6 +150,7 @@ def main() -> None:
     telegram_app_token = (Path('token').read_text())
     app = TelegramHandler(telegram_app_token)
     app.start()
-
+    
+    
 if __name__ == "__main__":
     main()
