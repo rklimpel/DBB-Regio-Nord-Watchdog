@@ -10,7 +10,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from scraper import TableCrawler, GameCrawler
 import stringify
 import commands
-from database import UserPersistenceHandler
+from database import UserPersistenceHandler, GamePersistenceHandler
 from models import Game, TableEntry, User
 
 class TelegramHandler:
@@ -24,7 +24,7 @@ class TelegramHandler:
 
     def setup_job_queue(self):
         self.job_queue = self.application.job_queue
-        #self.job_queue.run_repeating(self.send_subscribed_games, interval=10, first=20)
+        self.job_queue.run_repeating(self.send_subscribed_games, interval=30, first=5)
 
     def register_commands(self):
         self.application.add_handler(CommandHandler("start", self.start_command))
@@ -127,9 +127,16 @@ class TelegramHandler:
              await update.message.reply_text(message)
 
     async def send_subscribed_games(self, context: ContextTypes.DEFAULT_TYPE):
-        # games = GameCrawler().get_all_games()
+        print("periodic task")
+        games = GameCrawler().get_all_games()
+        gamePersistenceHandler = GamePersistenceHandler()
+        games_up_to_date = gamePersistenceHandler.check_dv_up_to_date(games)
+        print("Games up to date? " + str(games_up_to_date))
+        if not games_up_to_date:
+            print(gamePersistenceHandler.get_changed_games(games))
+            gamePersistenceHandler.update_games(games)
         # database.insert_all_games(games)
-        await context.bot.send_message(chat_id='642529287', text='One message every 10 seconds')
+        # await context.bot.send_message(chat_id='642529287', text='One message every 10 seconds')
 
 def main() -> None:
     logging.basicConfig(

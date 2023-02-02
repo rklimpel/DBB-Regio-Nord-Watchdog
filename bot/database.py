@@ -15,6 +15,12 @@ class PersistenceHandler():
     def insert(self, data):
         self.db.insert(data)
 
+    def insert_all(self, data):
+        self.db.insert_multiple(data)
+
+    def clear_db(self):
+        self.db.truncate()
+
     def update(self, data, doc_ids):
         self.db.update(data, doc_ids=doc_ids)
 
@@ -63,3 +69,42 @@ class UserPersistenceHandler(PersistenceHandler):
 
     def delete_user(self, user_id):
         self.delete(doc_ids=[self.get_user_id_by_chat_id(chat_id=user.chat_id)])
+
+class GamePersistenceHandler(PersistenceHandler):
+
+    def __init__(self):
+        super().__init__('data/games.json')
+
+    def get_games(self):
+        db_games = self.get_all()
+        if db_games is not None:
+            return [Game(game) for game in db_games]
+
+    def insert_games(self, games):
+        dict_games = [game.to_dict() for game in games]
+        self.insert_all(dict_games)
+
+    def update_games(self, games):
+        self.clear_db()
+        self.insert_games(games)
+
+    def check_dv_up_to_date(self, games):
+        return len(self.get_changed_games(games)) == 0
+
+    def get_changed_games(self, games):
+        db_games = self.get_games()
+        if db_games is None:
+            return games
+        changed_games = []
+        for i in range(len(db_games)):
+            match = False
+            for j in range(len(games)):
+                if db_games[i] == games[j]:
+                    match = True
+            if not match:
+                changed_games.append(games[i])
+        return changed_games
+
+        
+
+       

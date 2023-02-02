@@ -12,7 +12,7 @@ class Game():
     def __init__(self, game):
         self.date = game["date"]
         self.time = game["time"]
-        self.game_id = game["id"]
+        self.game_id = game["game_id"]
         self.team_home = game["team_home"]
         self.team_away = game["team_away"]
         self.team_home_score = game["team_home_score"]
@@ -28,6 +28,15 @@ class Game():
             "team_home_score": self.team_home_score,
             "team_away_score": self.team_away_score
         }
+
+    def __str__(self):
+        return str(self.to_dict())
+
+    def __repr__(self):
+        return str(self.to_dict())
+
+    def __eq__(self, other):
+        return self.to_dict() == other.to_dict()
 
 class TableEntry():
     rank = ""

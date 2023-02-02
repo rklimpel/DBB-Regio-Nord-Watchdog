@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time
 
+from models import Game, TableEntry
 
 class DBBRegioCrawler():
 
@@ -88,18 +89,17 @@ class GameCrawler(DBBRegioCrawler):
         games = self.read_table_from_page(self.url)
         pretty_games = []
         for game in games:
-            print(game)
             if len(game) > 1:
                 remove_duplicated_teams(game)
-                pretty_games.append({
+                pretty_games.append(Game({
                     "date": game[0].split(" ")[0],
                     "time": game[0].split(" ")[1],
-                    "id": game[1],
+                    "game_id": game[1],
                     "team_home": game[2],
                     "team_away": game[4],
                     "team_home_score": game[3].split(":")[0].lstrip().rstrip(),
                     "team_away_score": game[3].split(":")[1].lstrip().rstrip(),
-                })
+                }))
         if team != None:
             pretty_games = self.filter_games_for_team(pretty_games, team)
         return pretty_games
