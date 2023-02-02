@@ -1,6 +1,7 @@
 from database import UserPersistenceHandler
 from scraper import TableCrawler, GameCrawler
 import stringify
+from models import User, Game, TableEntry, Changes
 
 def subscribe(chat_id, user_name, arg):
 
