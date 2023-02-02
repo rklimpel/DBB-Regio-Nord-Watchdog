@@ -24,7 +24,7 @@ class TelegramHandler:
 
     def setup_job_queue(self):
         self.job_queue = self.application.job_queue
-        self.job_queue.run_repeating(self.send_subscribed_games, interval=30, first=5)
+        self.job_queue.run_repeating(self.send_subscribed_games, interval=900, first=10)
 
     def register_commands(self):
         self.application.add_handler(CommandHandler("start", self.start_command))
