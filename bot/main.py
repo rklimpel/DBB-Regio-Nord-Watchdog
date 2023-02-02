@@ -9,8 +9,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 from scraper import TableCrawler, GameCrawler
 import stringify
-import data_handler
-from database import PersistenceHandler
+import commands
+from database import UserPersistenceHandler
 from models import Game, TableEntry, User
 
 class TelegramHandler:
@@ -35,6 +35,7 @@ class TelegramHandler:
         self.application.add_handler(CommandHandler("letzte_spiele", self.recent_games_command))
         self.application.add_handler(CommandHandler("naechste_spiele", self.next_games_command))
         self.application.add_handler(CommandHandler("subscribe", self.subscribe_command))
+        self.application.add_handler(CommandHandler("unsubscribe", self.unsubscribe_command))
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.echo))
 
     def start(self) -> None:
@@ -110,31 +111,20 @@ class TelegramHandler:
         await update.message.reply_text(update.message.text)
 
     async def subscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        persistenceHandler = PersistenceHandler()
-        chat_id = update.message.chat_id
-        user_name = update.effective_user.name
-        user = User({'chat_id': chat_id, 'name': user_name})
-        teams = TableCrawler().get_teams()
-        arg_team_name = team_name = ' '.join(context.args)
-        subscribed_team = None
-        for team in teams:
-            if arg_team_name.lower() in team.lower():
-                user.subscribed_teams.append(team)
-                subscribed_team = team
+        if len(context.args) == 0:
+            await update.message.reply_text("Bitte gib einen Teamnamen an.")
+            return
+        messages = commands.subscribe(update.message.chat_id, update.effective_user.name, ' '.join(context.args))
+        for message in messages:
+             await update.message.reply_text(message)
 
-        if subscribed_team is None:
-            await update.message.reply_text("Team not found")
+    async def unsubscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        if len(context.args) == 0:
+            await update.message.reply_text("Bitte gib einen Teamnamen an.")
             return
-        else:
-            print(user.to_JSON())
-            print(user.subscribed_teams)
-            persistenceHandler.insert_user(user)
-            await update.message.reply_text("Du hast Benachrichtigungen aktiviert für das Team '" + subscribed_team +"'")
-            subscriptions_string = "Aktuell bist du auf folgende Teams subscribed:\n"
-            for team in user.subscribed_teams:
-                subscriptions_string += team + "\n"
-            await update.message.reply_text(subscriptions_string)
-            return
+        messages = commands.unsubscribe(update.message.chat_id, ' '.join(context.args))
+        for message in messages:
+             await update.message.reply_text(message)
 
     async def send_subscribed_games(self, context: ContextTypes.DEFAULT_TYPE):
         # games = GameCrawler().get_all_games()

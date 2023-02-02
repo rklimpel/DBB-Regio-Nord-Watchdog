@@ -18,8 +18,16 @@ class Game():
         self.team_home_score = game["team_home_score"]
         self.team_away_score = game["team_away_score"]
 
-    def to_JSON(self):
-        return json.loads(json.dumps(self, default=lambda o: o.__dict__))
+    def to_dict(self):
+        return {
+            "date": self.date,
+            "time": self.time,
+            "game_id": self.game_id,
+            "team_home": self.team_home,
+            "team_away": self.team_away,
+            "team_home_score": self.team_home_score,
+            "team_away_score": self.team_away_score
+        }
 
 class TableEntry():
     rank = ""
@@ -36,9 +44,17 @@ class TableEntry():
         self.wins = entry["wins"]
         self.losses = entry["losses"]
         self.points = entry["points"]
+
+    def to_dict(self):
+        return {
+            "rank": self.rank,
+            "team": self.team,
+            "games": self.games,
+            "wins": self.wins,
+            "losses": self.losses,
+            "points": self.points
+        }
     
-    def to_JSON(self):
-        return json.loads(json.dumps(self, default=lambda o: o.__dict__))
 
 class User():
     name=""
@@ -50,5 +66,9 @@ class User():
         if 'chat_id' in user.keys(): self.chat_id = user["chat_id"]
         if 'subscribed_teams' in user.keys(): self.subscribed_teams = user["subscribed_teams"] 
 
-    def to_JSON(self):
-        return json.loads(json.dumps(self, default=lambda o: o.__dict__))
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "chat_id": self.chat_id,
+            "subscribed_teams": self.subscribed_teams
+        }
