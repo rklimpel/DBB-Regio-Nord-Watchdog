@@ -1,5 +1,5 @@
 from tinydb import TinyDB, Query
-from models import User, Game, TableEntry
+from models import User, Game, TableEntry, Changes
 
 class PersistenceHandler():
 
@@ -56,7 +56,8 @@ class UserPersistenceHandler(PersistenceHandler):
         return None
 
     def get_users(self):
-        return self.get_all()
+        db_users = self.get_all()
+        return [User(user) for user in db_users]
 
     def insert_user(self, user: User):
         self.insert(user.to_dict())
@@ -74,6 +75,12 @@ class GamePersistenceHandler(PersistenceHandler):
 
     def __init__(self):
         super().__init__('data/games.json')
+
+    def get_game_by_game_id(self, game_id):
+        db_game = self.db.get(Query().game_id == game_id)
+        if db_game is not None:
+            return Game(db_game)
+        return None
 
     def get_games(self):
         db_games = self.get_all()
@@ -96,13 +103,18 @@ class GamePersistenceHandler(PersistenceHandler):
         if db_games is None:
             return games
         changed_games = []
-        for i in range(len(db_games)):
-            match = False
-            for j in range(len(games)):
-                if db_games[i] == games[j]:
-                    match = True
-            if not match:
-                changed_games.append(games[i])
+        for i in range(len(games)):
+            found = False
+            for j in range(len(db_games)):
+                if games[i] == db_games[j]:
+                    found = True
+            if not found:
+                changed_games.append(
+                    Changes(
+                        self.get_game_by_game_id(games[i].game_id), 
+                        games[i]
+                    )
+                )
         return changed_games
 
         

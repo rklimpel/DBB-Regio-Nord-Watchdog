@@ -81,3 +81,20 @@ class User():
             "chat_id": self.chat_id,
             "subscribed_teams": self.subscribed_teams
         }
+
+class Changes():
+    def __init__(self, old, new):
+        self.old = old
+        self.new = new
+
+    def to_dict(self):
+        return {
+            "old": self.old,
+            "new": self.new,
+        }
+
+    def __str__(self):
+        return str(self.to_dict())
+
+    def __repr__(self):
+        return str(self.to_dict())

@@ -127,16 +127,19 @@ class TelegramHandler:
              await update.message.reply_text(message)
 
     async def send_subscribed_games(self, context: ContextTypes.DEFAULT_TYPE):
-        print("periodic task")
         games = GameCrawler().get_all_games()
         gamePersistenceHandler = GamePersistenceHandler()
         games_up_to_date = gamePersistenceHandler.check_dv_up_to_date(games)
-        print("Games up to date? " + str(games_up_to_date))
         if not games_up_to_date:
-            print(gamePersistenceHandler.get_changed_games(games))
+            changes = gamePersistenceHandler.get_changed_games(games)
+            userPersistenceHandler = UserPersistenceHandler()
+            users = userPersistenceHandler.get_users()
+            for user in users:
+                messages = commands.get_user_subscribed_changed_games_message(changes, user)
+                if len(messages) > 0:
+                    for message in messages:
+                        await context.bot.send_message(chat_id=user.chat_id, text=message)
             gamePersistenceHandler.update_games(games)
-        # database.insert_all_games(games)
-        # await context.bot.send_message(chat_id='642529287', text='One message every 10 seconds')
 
 def main() -> None:
     logging.basicConfig(

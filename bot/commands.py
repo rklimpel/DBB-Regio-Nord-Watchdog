@@ -1,5 +1,6 @@
 from database import UserPersistenceHandler
 from scraper import TableCrawler, GameCrawler
+import stringify
 
 def subscribe(chat_id, user_name, arg):
 
@@ -80,3 +81,16 @@ def unsubscribe(chat_id, arg):
             subscriptions_string += team + "\n"
         messages.append(subscriptions_string)
         return messages
+
+def get_user_subscribed_changed_games_message(changes, user):
+    messages = []
+    for change in changes:
+        print("Processing change for user " + str(change) + " " + str(user))
+        if change.new.team_home in user.subscribed_teams or change.new.team_away in user.subscribed_teams:
+            if change.new.team_home_score != change.old.team_home_score or change.new.team_away_score != change.old.team_away_score:
+                messages.append("Ergebnis eingetragen!\n" + stringify.played_game_as_string(change.new))
+            elif change.new.date != change.old.date or change.new.time != change.old.time:
+                messages.append("Spiel verlegt!\n" + stringify.upcoming_game_as_string(change.new))
+            else:
+                messages.append("Nicht kategorisierte Änderung am!\n" + stringify.upcoming_game_as_string(change.new))
+    return messages
