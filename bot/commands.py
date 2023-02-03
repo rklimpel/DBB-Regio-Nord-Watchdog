@@ -117,7 +117,7 @@ def get_recent_games_message(team_name=None, count=None):
         games_string += stringify.played_game_as_string(game) + "\n"
     return [games_string]
 
-def get_team_games(team_name):
+def get_team_games_message(team_name):
     games = GamePersistenceHandler().get_games_by_team(team_name)
     games_string = "Spiele " + team_name + ", Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
     for game in games:

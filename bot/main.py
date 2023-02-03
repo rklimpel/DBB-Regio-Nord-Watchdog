@@ -65,7 +65,7 @@ class TelegramHandler:
             await update.message.reply_text("Bitte gib einen Teamnamen an.")
             return
         team_name = ' '.join(context.args)
-        messages = commands.get_team_games(team_name)
+        messages = commands.get_team_games_message(team_name)
         for message in messages:
             await update.message.reply_text(message)
 

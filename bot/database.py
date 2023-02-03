@@ -151,8 +151,9 @@ class GamePersistenceHandler(PersistenceHandler):
         return [Game(game) for game in db_games]
 
     def get_games_by_team(self, team_name):
+        test_contains = lambda value, search: search.lower() in value.lower()
         db_games = self.db.search(
-            Query().home_team == team_name 
-            or Query().away_team == team_name
+            Query().team_home.test(test_contains, team_name)
+            or Query().team_away.test(test_contains, team_name)
         )
         return [Game(game) for game in db_games]
