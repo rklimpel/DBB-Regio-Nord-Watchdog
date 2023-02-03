@@ -1,6 +1,8 @@
 from tinydb import TinyDB, Query
 from models import User, Game, TableEntry, Changes
 
+test_contains = lambda value, search: search.lower() in value.lower()
+
 class PersistenceHandler():
 
     def __init__(self, db_path):
@@ -118,18 +120,21 @@ class GamePersistenceHandler(PersistenceHandler):
         return changed_games
 
     def get_upcoming_games(self, team_name=None, count=6):
+        if count == None: count = 6
         if team_name is None:
             db_games = self.db.search(
-                Query().team_home_score == ""
-                and Query().team_away_score == ""
+                (Query().team_home_score == "")
+                & (Query().team_away_score == "")
             )
         else:
             db_games = self.db.search(
-                (Query().team_home == team_name 
-                or Query().team_away == team_name)
-                and Query().team_home_score == ""
-                and Query().team_away_score == ""
+                (Query().team_home.test(test_contains, team_name)
+                | Query().team_away.test(test_contains, team_name))
+                & (Query().team_home_score == "")
+                & (Query().team_away_score == "")
             )
+        print("Found Games for team: " + team_name + ": " + str(len(db_games)))
+        print(db_games)
         db_games = db_games[:count]
         return [Game(game) for game in db_games]     
 
@@ -141,20 +146,19 @@ class GamePersistenceHandler(PersistenceHandler):
             )
         else:
             db_games = self.db.search(
-                (Query().team_home == team_name 
-                or Query().team_away == team_name)
-                and Query().team_home_score != ""
-                and Query().team_away_score != ""
+                (Query().team_home.test(test_contains, team_name)
+                | Query().team_away.test(test_contains, team_name))
+                & (Query().team_home_score != "")
+                & (Query().team_away_score != "")
             )
         db_games.reverse()
         db_games = db_games[:count]
         return [Game(game) for game in db_games]
 
     def get_games_by_team(self, team_name):
-        test_contains = lambda value, search: search.lower() in value.lower()
         db_games = self.db.search(
-            Query().team_home.test(test_contains, team_name)
-            or Query().team_away.test(test_contains, team_name)
+            (Query().team_home.test(test_contains, team_name))
+            | (Query().team_away.test(test_contains, team_name))
         )
         return [Game(game) for game in db_games]
 
@@ -166,6 +170,10 @@ class TablePersistenceHandler(PersistenceHandler):
         def get_table(self):
             db_table = self.get_all()
             return [TableEntry(entry) for entry in db_table]
+
+        def get_teams(self):
+            db_table = self.get_all()
+            return [entry["team"] for entry in db_table]
     
         def insert_table(self, table):
             dict_table = [entry.to_dict() for entry in table]

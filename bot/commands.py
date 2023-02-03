@@ -1,4 +1,4 @@
-from database import UserPersistenceHandler, GamePersistenceHandler
+from database import UserPersistenceHandler, GamePersistenceHandler, TablePersistenceHandler
 from scraper import TableCrawler, GameCrawler
 import stringify
 from models import User, Game, TableEntry, Changes
@@ -86,7 +86,6 @@ def unsubscribe(chat_id, arg):
 def get_user_subscribed_changed_games_message(changes, user):
     messages = []
     for change in changes:
-        print("Processing change for user " + str(change) + " " + str(user))
         if change.new.team_home in user.subscribed_teams or change.new.team_away in user.subscribed_teams:
             if change.new.is_played() and change.old.is_played() == False:
                 messages.append("Ergebnis eingetragen!\n" + stringify.played_game_as_string(change.new))
@@ -97,12 +96,8 @@ def get_user_subscribed_changed_games_message(changes, user):
     return messages
 
 def get_upcoming_games_message(team_name=None, count=None):  
-    if count is None:
-        games = GamePersistenceHandler().get_upcoming_games(team_name=team_name)
-    else:
-        games = GamePersistenceHandler().get_upcoming_games(team_name=team_name, count=count)
+    games = GamePersistenceHandler().get_upcoming_games(team_name=team_name, count=count)
     games_string = "Nächste Spiele, Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
-    print(games)
     for game in games:
         games_string += stringify.upcoming_game_as_string(game) + "\n"
     return [games_string]
@@ -127,10 +122,16 @@ def get_team_games_message(team_name):
             games_string += stringify.played_game_as_string(game) + "\n"
     return [games_string]
 
+def get_table_message():
+    table = TablePersistenceHandler().get_table()
+    table_string = "Tabelle, Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
+    for table_entry in table:
+        table_string += stringify.table_entry_as_string(table_entry) + "\n"
+    return [table_string]
+
 def get_user_subscribed_changed_table_message(changes, user):
     messages = []
     for change in changes:
-        print("Table change " + str(change))
         if change.new.team in user.subscribed_teams:
             change_message = ""
             change_message += "Tabellenänderung für " + change.new.team + ":\n"

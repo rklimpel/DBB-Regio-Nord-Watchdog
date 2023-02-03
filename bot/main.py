@@ -52,13 +52,11 @@ class TelegramHandler:
         )
 
     async def teams_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await update.message.reply_text('\n'.join(TableCrawler().get_teams()))
+        await update.message.reply_text('\n'.join(TablePersistenceHandler().get_teams()))
 
     async def table_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        table_string = "Tabellenstand vom " + stringify.current_data_time_as_string() + ":\n\n"
-        for row in TableCrawler().get_table():
-            table_string += row['position'] + ". " + row['team'] + " (" + row['points'] + ")\n"
-        await update.message.reply_text(table_string)
+        messages = commands.get_table_message()
+        await self.send_messages_to_user(messages, update)
 
     async def team_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) == 0:
@@ -66,7 +64,7 @@ class TelegramHandler:
             return
         team_name = ' '.join(context.args)
         messages = commands.get_team_games_message(team_name)
-        self.send_messages_to_user(messages, update)
+        await self.send_messages_to_user(messages, update)
 
     async def recent_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) > 0:
@@ -74,12 +72,12 @@ class TelegramHandler:
             messages = commands.get_recent_games_message(team_name)
         else:
             messages = commands.get_recent_games_message()
-        self.send_messages_to_user(messages, update)
+        await self.send_messages_to_user(messages, update)
 
     async def next_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) > 0:
             team_name = ' '.join(context.args)
-            messages = commands.get_upcoming_games_message(team_name)
+            messages = commands.get_upcoming_games_message(team_name=team_name)
         else:
             messages = commands.get_upcoming_games_message()
         await self.send_messages_to_user(messages, update)
@@ -102,14 +100,14 @@ class TelegramHandler:
             await update.message.reply_text("Bitte gib einen Teamnamen an.")
             return
         messages = commands.subscribe(update.message.chat_id, update.effective_user.name, ' '.join(context.args))
-        self.send_messages_to_user(messages, update)
+        await self.send_messages_to_user(messages, update)
 
     async def unsubscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) == 0:
             await update.message.reply_text("Bitte gib einen Teamnamen an.")
             return
         messages = commands.unsubscribe(update.message.chat_id, ' '.join(context.args))
-        self.send_messages_to_user(messages, update)
+        await self.send_messages_to_user(messages, update)
 
     async def periodic_update_checker(self, context: ContextTypes.DEFAULT_TYPE):
 
