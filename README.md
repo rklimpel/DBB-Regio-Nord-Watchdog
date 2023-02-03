@@ -23,3 +23,16 @@ Telegram Bot supports the following commands:
 Data is retrieved from the basketball league website via a web scraper, formatted and then written to the database using TinyDB. A periodic job runs every x minutes to check if there is anything new in the standings or the list of games. 
 Via the Telegram bot you can get information like standings, next games or last played games. The information is then provided from the database. Furthermore, it is possible to subscribe to updates regarding specific teams. When the periodic job has run and fetched the latest information from the website, it checks if there have been any changes and then informs all users who have subscribed to the changes.
 
+## Screenshots
+
+<p float="center">
+  <img src="./screenshots/IMG_2586.PNG" width="30%" />
+  <img src="./screenshots/IMG_2592.PNG" width="30%" /> 
+  <img src="./screenshots/IMG_2588.PNG" width="30%" />
+</p>
+
+<p float="center">
+  <img src="./screenshots/IMG_2589.PNG" width="30%" />
+  <img src="./screenshots/IMG_2593.PNG" width="30%" /> 
+  <img src="./screenshots/IMG_2595.PNG" width="30%" />
+</p>
