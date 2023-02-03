@@ -7,4 +7,5 @@
 /letzte_spiele - Letzten Spielergebnisse der Liga
 /naechste_spiele - Nächsten Spiele der Liga
 /teams - Liste aller Teams in der Liga
-/hilfe - Zeigt Bot Kommandos.
+/start - Zeigt Willkommensnachricht
+/hilfe - Zeigt Bot Kommandos

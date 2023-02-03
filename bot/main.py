@@ -56,9 +56,11 @@ class TelegramHandler:
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         user = update.effective_user
         await update.message.reply_html(
-            rf"Hi {user.mention_html()}!",
-            reply_markup=ForceReply(selective=True),
+            rf"Hi {user.mention_html()}!"
         )
+        await update.message.reply_text("Willkommen beim Basketball Regio Nord (West) Watchdog!\nIch bin dafür da, dabei zu helfen die neusten Informationen aus der Liga abzurufen. Außerdem kann man Benachrichtigungen für Spiele eines Teams abonnieren, um direkt eine Nachricht zu bekommen wenn neue Informationen auf der Webseite eingetragen werden.")
+        help_text = Path('help.txt').read_text()
+        await update.message.reply_text(help_text)
 
     async def teams_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text('\n'.join(TablePersistenceHandler().get_teams()))
