@@ -117,6 +117,42 @@ class GamePersistenceHandler(PersistenceHandler):
                 )
         return changed_games
 
-        
+    def get_upcoming_games(self, team_name=None, count=6):
+        if team_name is None:
+            db_games = self.db.search(
+                Query().team_home_score == ""
+                and Query().team_away_score == ""
+            )
+        else:
+            db_games = self.db.search(
+                (Query().team_home == team_name 
+                or Query().team_away == team_name)
+                and Query().team_home_score == ""
+                and Query().team_away_score == ""
+            )
+        db_games = db_games[:count]
+        return [Game(game) for game in db_games]     
 
-       
+    def get_recent_games(self, team_name=None, count=6):
+        if team_name is None:
+            db_games = self.db.search(
+                (Query().team_home_score != "")
+                & (Query().team_away_score != "")
+            )
+        else:
+            db_games = self.db.search(
+                (Query().team_home == team_name 
+                or Query().team_away == team_name)
+                and Query().team_home_score != ""
+                and Query().team_away_score != ""
+            )
+        db_games.reverse()
+        db_games = db_games[:count]
+        return [Game(game) for game in db_games]
+
+    def get_games_by_team(self, team_name):
+        db_games = self.db.search(
+            Query().home_team == team_name 
+            or Query().away_team == team_name
+        )
+        return [Game(game) for game in db_games]

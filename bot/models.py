@@ -18,6 +18,9 @@ class Game():
         self.team_home_score = game["team_home_score"]
         self.team_away_score = game["team_away_score"]
 
+    def is_played(self):
+        return self.team_home_score != "" and self.team_away_score != ""
+
     def to_dict(self):
         return {
             "date": self.date,

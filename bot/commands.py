@@ -1,4 +1,4 @@
-from database import UserPersistenceHandler
+from database import UserPersistenceHandler, GamePersistenceHandler
 from scraper import TableCrawler, GameCrawler
 import stringify
 from models import User, Game, TableEntry, Changes
@@ -88,10 +88,41 @@ def get_user_subscribed_changed_games_message(changes, user):
     for change in changes:
         print("Processing change for user " + str(change) + " " + str(user))
         if change.new.team_home in user.subscribed_teams or change.new.team_away in user.subscribed_teams:
-            if change.new.team_home_score != change.old.team_home_score or change.new.team_away_score != change.old.team_away_score:
+            if change.new.is_played() and change.old.is_played() == False:
                 messages.append("Ergebnis eingetragen!\n" + stringify.played_game_as_string(change.new))
             elif change.new.date != change.old.date or change.new.time != change.old.time:
                 messages.append("Spiel verlegt!\n" + stringify.upcoming_game_as_string(change.new))
             else:
                 messages.append("Nicht kategorisierte Änderung am!\n" + stringify.upcoming_game_as_string(change.new))
     return messages
+
+def get_upcoming_games_message(team_name=None, count=None):  
+    if count is None:
+        games = GamePersistenceHandler().get_upcoming_games(team_name=team_name)
+    else:
+        games = GamePersistenceHandler().get_upcoming_games(team_name=team_name, count=count)
+    games_string = "Nächste Spiele, Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
+    print(games)
+    for game in games:
+        games_string += stringify.upcoming_game_as_string(game) + "\n"
+    return [games_string]
+
+def get_recent_games_message(team_name=None, count=None):
+    if count is None:
+        games = GamePersistenceHandler().get_recent_games(team_name=team_name)
+    else:
+        games = GamePersistenceHandler().get_recent_games(team_name=team_name, count=count)
+    games_string = "Letzte Spiele, Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
+    for game in games:
+        games_string += stringify.played_game_as_string(game) + "\n"
+    return [games_string]
+
+def get_team_games(team_name):
+    games = GamePersistenceHandler().get_games_by_team(team_name)
+    games_string = "Spiele " + team_name + ", Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
+    for game in games:
+        if not game.is_played():
+            games_string += stringify.upcoming_game_as_string(game) + "\n"
+        else:
+            games_string += stringify.played_game_as_string(game) + "\n"
+    return [games_string]

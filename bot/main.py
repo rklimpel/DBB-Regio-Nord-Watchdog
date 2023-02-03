@@ -65,37 +65,27 @@ class TelegramHandler:
             await update.message.reply_text("Bitte gib einen Teamnamen an.")
             return
         team_name = ' '.join(context.args)
-        games_string = "Spiele " + team_name + ", Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
-        games = GameCrawler().get_all_games(team=team_name)
-        for game in games:
-            if game['team_home_score'] == '':
-                games_string += stringify.upcoming_game_as_string(game) + "\n"
-            else:
-                games_string += stringify.played_game_as_string(game) + "\n"
-        await update.message.reply_text(games_string)
+        messages = commands.get_team_games(team_name)
+        for message in messages:
+            await update.message.reply_text(message)
 
     async def recent_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) > 0:
             team_name = ' '.join(context.args)
-            game_list = GameCrawler().get_recent_games(team=team_name)
+            messages = commands.get_recent_games_message(team_name)
         else:
-            game_list = GameCrawler().get_recent_games()
-        games_string = "Letzte Spiele, Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
-        for game in game_list:
-            games_string += stringify.played_game_as_string(game) + "\n"
-        await update.message.reply_text(games_string)
+            messages = commands.get_recent_games_message()
+        for message in messages:
+            await update.message.reply_text(message)
 
     async def next_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) > 0:
             team_name = ' '.join(context.args)
-            game_list = GameCrawler().get_upcoming_games(team=team_name)
+            messages = commands.get_upcoming_games_message(team_name)
         else:
-            game_list = GameCrawler().get_upcoming_games()
-        games_string = "Nächste Spiele, Stand vom " + stringify.current_data_time_as_string() + ":\n\n"
-        for game in game_list:
-            games_string += stringify.upcoming_game_as_string(game) + "\n"
-        await update.message.reply_text(games_string)
-    
+            messages = commands.get_upcoming_games_message()
+        for message in messages:
+            await update.message.reply_text(message)
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(
