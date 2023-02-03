@@ -4,14 +4,20 @@ import logging
 import datetime
 import threading
 from telegram import __version__ as TG_VER
-from telegram import ForceReply, Update, Bot
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, Updater
+from telegram import *
+from telegram.ext import *
+from typing import Union, List
 
 from scraper import TableCrawler, GameCrawler
 import stringify
 import commands
 from database import UserPersistenceHandler, GamePersistenceHandler, TablePersistenceHandler
 from models import Game, TableEntry, User
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 class TelegramHandler:
 
@@ -24,18 +30,21 @@ class TelegramHandler:
 
     def setup_job_queue(self):
         self.job_queue = self.application.job_queue
-        self.job_queue.run_repeating(self.periodic_update_checker, interval=30, first=5)
+        self.job_queue.run_repeating(self.periodic_update_checker, interval=900, first=30)
 
     def register_commands(self):
         self.application.add_handler(CommandHandler("start", self.start_command))
-        self.application.add_handler(CommandHandler("help", self.help_command))
+        self.application.add_handler(CommandHandler("hilfe", self.help_command))
         self.application.add_handler(CommandHandler("teams", self.teams_command))
         self.application.add_handler(CommandHandler("tabelle", self.table_command))
-        self.application.add_handler(CommandHandler("spiele", self.team_games_command))
+        self.application.add_handler(CommandHandler("team_spiele", self.team_games_command))
+        self.application.add_handler(CommandHandler("team_letzte_spiele", self.team_recent_games_command))
+        self.application.add_handler(CommandHandler("team_naechste_spiele", self.team_next_games_command))
         self.application.add_handler(CommandHandler("letzte_spiele", self.recent_games_command))
         self.application.add_handler(CommandHandler("naechste_spiele", self.next_games_command))
         self.application.add_handler(CommandHandler("subscribe", self.subscribe_command))
         self.application.add_handler(CommandHandler("unsubscribe", self.unsubscribe_command))
+        self.application.add_handler(CallbackQueryHandler(self.button_pressed))
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.echo))
 
     def start(self) -> None:
@@ -56,15 +65,34 @@ class TelegramHandler:
 
     async def table_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         messages = commands.get_table_message()
-        await self.send_messages_to_user(messages, update)
+        await self.send_messages_to_user(messages, context, update)
 
     async def team_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if len(context.args) == 0:
-            await update.message.reply_text("Bitte gib einen Teamnamen an.")
-            return
-        team_name = ' '.join(context.args)
-        messages = commands.get_team_games_message(team_name)
-        await self.send_messages_to_user(messages, update)
+        teams = TablePersistenceHandler().get_teams()
+        await self.show_selection_buttons(
+            update,
+            "Wähle ein Team aus, dessen Spiele du sehen möchtest:",
+            teams,
+            "team_spiele"
+        )
+
+    async def team_recent_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        teams = TablePersistenceHandler().get_teams()
+        await self.show_selection_buttons(
+            update,
+            "Wähle ein Team aus, dessen letzten Spielergebnisse du sehen möchtest:",
+            teams,
+            "team_letzte_spiele"
+        )
+
+    async def team_next_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        teams = TablePersistenceHandler().get_teams()
+        await self.show_selection_buttons(
+            update,
+            "Wähle ein Team aus, dessen nächsten Spiele du sehen möchtest:",
+            teams,
+            "team_naechste_spiele"
+        )
 
     async def recent_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) > 0:
@@ -72,7 +100,7 @@ class TelegramHandler:
             messages = commands.get_recent_games_message(team_name)
         else:
             messages = commands.get_recent_games_message()
-        await self.send_messages_to_user(messages, update)
+        await self.send_messages_to_user(messages, context, update)
 
     async def next_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) > 0:
@@ -80,34 +108,35 @@ class TelegramHandler:
             messages = commands.get_upcoming_games_message(team_name=team_name)
         else:
             messages = commands.get_upcoming_games_message()
-        await self.send_messages_to_user(messages, update)
+        await self.send_messages_to_user(messages, context, update)
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        await update.message.reply_text(
-            "/teams - List all teams in the league.\n"
-            + "/tabelle - Zeigt die aktuelle Tabelle an.\n"
-            + "/spiele <team> - List all games of one team.\n"
-            + "/letzte_spiele - Zeigt die letzten Spiele an.\n"
-            + "/naechste_spiele - Zeigt die nächsten Spiele an.\n"
-            + "/help - Show this help message.\n"
-        )
+        help_text = Path('help.txt').read_text()
+        await update.message.reply_text(help_text)
 
     async def echo(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(update.message.text)
 
     async def subscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if len(context.args) == 0:
-            await update.message.reply_text("Bitte gib einen Teamnamen an.")
-            return
-        messages = commands.subscribe(update.message.chat_id, update.effective_user.name, ' '.join(context.args))
-        await self.send_messages_to_user(messages, update)
+        teams = TablePersistenceHandler().get_teams()
+        teams = ["all"] + teams 
+        await self.show_selection_buttons(
+            update, 
+            "Wähle ein Team aus, für das du Benachrichtigungen bekommen möchtest:",
+            teams, 
+            "subscribe"
+        )
 
     async def unsubscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        if len(context.args) == 0:
-            await update.message.reply_text("Bitte gib einen Teamnamen an.")
-            return
-        messages = commands.unsubscribe(update.message.chat_id, ' '.join(context.args))
-        await self.send_messages_to_user(messages, update)
+        user = UserPersistenceHandler().get_user_by_chat_id(chat_id=update.message.chat_id)
+        subscribed_teams = user.subscribed_teams
+        subscribed_teams = ["all"] + subscribed_teams 
+        await self.show_selection_buttons(
+            update, 
+            "Wähle ein Team aus, für das du die Benachrichtigungen deaktivieren möchtest:", 
+            subscribed_teams,
+            "unsubscribe"
+        )
 
     async def periodic_update_checker(self, context: ContextTypes.DEFAULT_TYPE):
 
@@ -143,20 +172,44 @@ class TelegramHandler:
                         await context.bot.send_message(chat_id=user.chat_id, text=message)
             tablePersistenceHandler.update_table(table)
 
-    async def send_messages_to_user(self, messages, update):
+    async def show_selection_buttons(self, update: Update, text, select_options, callback_str: str) -> None:
+        keyboard = []
+        for option in select_options:
+            keyboard.append([InlineKeyboardButton(option, callback_data=callback_str + "#" + option)])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(text, reply_markup=reply_markup)
+
+    async def button_pressed(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        query = update.callback_query
+        await query.answer()
+
+        callback_str, callback_data = query.data.split("#")
+
+        if callback_str == "subscribe":
+            messages = commands.subscribe(update.effective_chat.id, update.effective_user.name, callback_data)
+            await self.send_messages_to_user(messages, context, update)
+        elif callback_str == "unsubscribe":
+            messages = commands.unsubscribe(update.effective_chat.id, callback_data)
+            await self.send_messages_to_user(messages, context, update)
+        elif callback_str == "team_naechste_spiele":
+            messages = commands.get_upcoming_games_message(team_name=callback_data)
+            await self.send_messages_to_user(messages, context, update)
+        elif callback_str == "team_letzte_spiele":
+            messages = commands.get_recent_games_message(team_name=callback_data)
+            await self.send_messages_to_user(messages, context, update)
+        elif callback_str == "team_spiele":
+            messages = commands.get_team_games_message(team_name=callback_data)
+            await self.send_messages_to_user(messages, context, update)
+        # await query.edit_message_text(text=f"Selected option: {query.data}")
+
+    async def send_messages_to_user(self, messages, context, update):
         for message in messages:
-            await update.message.reply_text(message)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
 
 def main() -> None:
-    logging.basicConfig(
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-    )
-    logger = logging.getLogger(__name__)
-
-    telegram_app_token = (Path('token').read_text())
+    telegram_app_token = Path('token').read_text()
     app = TelegramHandler(telegram_app_token)
     app.start()
-    
     
 if __name__ == "__main__":
     main()

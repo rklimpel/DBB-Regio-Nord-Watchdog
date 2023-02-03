@@ -120,7 +120,7 @@ class GamePersistenceHandler(PersistenceHandler):
         return changed_games
 
     def get_upcoming_games(self, team_name=None, count=6):
-        if count == None: count = 6
+        if count is None: count = 6
         if team_name is None:
             db_games = self.db.search(
                 (Query().team_home_score == "")
@@ -133,8 +133,6 @@ class GamePersistenceHandler(PersistenceHandler):
                 & (Query().team_home_score == "")
                 & (Query().team_away_score == "")
             )
-        print("Found Games for team: " + team_name + ": " + str(len(db_games)))
-        print(db_games)
         db_games = db_games[:count]
         return [Game(game) for game in db_games]     
 
@@ -173,6 +171,7 @@ class TablePersistenceHandler(PersistenceHandler):
 
         def get_teams(self):
             db_table = self.get_all()
+            db_table.sort(key=lambda x: x["team"])
             return [entry["team"] for entry in db_table]
     
         def insert_table(self, table):

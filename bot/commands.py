@@ -42,7 +42,7 @@ def subscribe(chat_id, user_name, arg):
         messages.append("Du hast Benachrichtigungen aktiviert für alle Teams")
     else:
         messages.append("Du hast Benachrichtigungen aktiviert für das Team '" + subscribed_team +"'")
-    subscriptions_string = "Aktuell bist du auf folgende Teams subscribed:\n"
+    subscriptions_string = "Aktuell bekommst du Benachrichtigungen für folgende Teams:\n"
     for team in user.subscribed_teams:
         subscriptions_string += team + "\n"
     messages.append(subscriptions_string)
@@ -77,7 +77,7 @@ def unsubscribe(chat_id, arg):
             messages.append("Du hast Benachrichtigungen deaktiviert für alle Teams")
         else:
             messages.append("Du hast Benachrichtigungen deaktiviert für das Team '" + unsubscribed_team +"'")
-        subscriptions_string = "Aktuell bist du noch auf folgende Teams subscribed:\n"
+        subscriptions_string = "Aktuell bekommst du Benachrichtigungen für die Teams:\n"
         for team in user.subscribed_teams:
             subscriptions_string += team + "\n"
         messages.append(subscriptions_string)

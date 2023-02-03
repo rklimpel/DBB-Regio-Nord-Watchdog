@@ -1,0 +1,10 @@
+/tabelle - Aktuelle Tabelle
+/subscribe - Benachrichtigungen für Teams aktivieren
+/unsubscribe - Benachrichtigungen für Teams deaktivieren
+/team_spiele - Alle Spiele eines Teams
+/team_letzte_spiele - Letzte Spielergebnisse eines Teams
+/team_naechste_spiele - Nächste Spiele eines Teams
+/letzte_spiele - Letzten Spielergebnisse der Liga
+/naechste_spiele - Nächsten Spiele der Liga
+/teams - Liste aller Teams in der Liga
+/hilfe - Zeigt Bot Kommandos.
