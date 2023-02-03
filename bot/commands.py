@@ -126,3 +126,22 @@ def get_team_games_message(team_name):
         else:
             games_string += stringify.played_game_as_string(game) + "\n"
     return [games_string]
+
+def get_user_subscribed_changed_table_message(changes, user):
+    messages = []
+    for change in changes:
+        print("Table change " + str(change))
+        if change.new.team in user.subscribed_teams:
+            change_message = ""
+            change_message += "Tabellenänderung für " + change.new.team + ":\n"
+            if change.new.points != change.old.points:
+                change_message += "Punkte dazugewonnen!\n"
+            if change.new.position != change.old.position:
+                change_message += "Tabellenposition hat sich verändert!\n"
+            if change.new.games != change.old.games \
+                and change.new.position == chhange.old.position \
+                and change.new.points == change.old.points:
+                change_message += "Keine Veränderung nach Eintrag des neuen Spiels!\n"
+            change_message += "\n" + stringify.table_entry_as_string(change.new)
+            messages.append(change_message)
+    return messages

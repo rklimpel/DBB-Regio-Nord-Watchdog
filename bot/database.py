@@ -95,7 +95,7 @@ class GamePersistenceHandler(PersistenceHandler):
         self.clear_db()
         self.insert_games(games)
 
-    def check_dv_up_to_date(self, games):
+    def check_games_up_to_date(self, games):
         return len(self.get_changed_games(games)) == 0
 
     def get_changed_games(self, games):
@@ -157,3 +157,53 @@ class GamePersistenceHandler(PersistenceHandler):
             or Query().team_away.test(test_contains, team_name)
         )
         return [Game(game) for game in db_games]
+
+class TablePersistenceHandler(PersistenceHandler):
+    
+        def __init__(self):
+            super().__init__('data/table.json')
+    
+        def get_table(self):
+            db_table = self.get_all()
+            return [TableEntry(entry) for entry in db_table]
+    
+        def insert_table(self, table):
+            dict_table = [entry.to_dict() for entry in table]
+            self.insert_all(dict_table)
+    
+        def update_table(self, table):
+            self.clear_db()
+            self.insert_table(table)
+    
+        def check_table_up_to_date(self, new_table):
+            return len(self.get_changed_table_entries(new_table)) == 0
+    
+        def get_changed_table_entries(self, table):
+            db_table = self.get_table()
+            changed_table = []
+            for i in range(len(table)):
+                found = False
+                for j in range(len(db_table)):
+                    if table[i] == db_table[j]:
+                        found = True
+                if not found:
+                    changed_table.append(
+                        Changes(
+                            self.get_table_entry_by_team(table[i].team), 
+                            table[i]
+                        )
+                    )
+            return changed_table
+    
+        def get_table_entry_by_team(self, team_name):
+            db_entry = self.db.get(Query().team == team_name)
+            if db_entry is not None:
+                return TableEntry(db_entry)
+            return None
+    
+        def get_table_entry_by_position(self, position):
+            db_entry = self.db.get(Query().position == position)
+            if db_entry is not None:
+                return TableEntry(db_entry)
+            return None
+    

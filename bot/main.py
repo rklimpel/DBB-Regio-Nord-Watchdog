@@ -10,7 +10,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from scraper import TableCrawler, GameCrawler
 import stringify
 import commands
-from database import UserPersistenceHandler, GamePersistenceHandler
+from database import UserPersistenceHandler, GamePersistenceHandler, TablePersistenceHandler
 from models import Game, TableEntry, User
 
 class TelegramHandler:
@@ -24,7 +24,7 @@ class TelegramHandler:
 
     def setup_job_queue(self):
         self.job_queue = self.application.job_queue
-        self.job_queue.run_repeating(self.send_subscribed_games, interval=900, first=10)
+        self.job_queue.run_repeating(self.periodic_update_checker, interval=30, first=5)
 
     def register_commands(self):
         self.application.add_handler(CommandHandler("start", self.start_command))
@@ -66,8 +66,7 @@ class TelegramHandler:
             return
         team_name = ' '.join(context.args)
         messages = commands.get_team_games_message(team_name)
-        for message in messages:
-            await update.message.reply_text(message)
+        self.send_messages_to_user(messages, update)
 
     async def recent_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) > 0:
@@ -75,8 +74,7 @@ class TelegramHandler:
             messages = commands.get_recent_games_message(team_name)
         else:
             messages = commands.get_recent_games_message()
-        for message in messages:
-            await update.message.reply_text(message)
+        self.send_messages_to_user(messages, update)
 
     async def next_games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) > 0:
@@ -84,8 +82,7 @@ class TelegramHandler:
             messages = commands.get_upcoming_games_message(team_name)
         else:
             messages = commands.get_upcoming_games_message()
-        for message in messages:
-            await update.message.reply_text(message)
+        await self.send_messages_to_user(messages, update)
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text(
@@ -105,22 +102,23 @@ class TelegramHandler:
             await update.message.reply_text("Bitte gib einen Teamnamen an.")
             return
         messages = commands.subscribe(update.message.chat_id, update.effective_user.name, ' '.join(context.args))
-        for message in messages:
-             await update.message.reply_text(message)
+        self.send_messages_to_user(messages, update)
 
     async def unsubscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if len(context.args) == 0:
             await update.message.reply_text("Bitte gib einen Teamnamen an.")
             return
         messages = commands.unsubscribe(update.message.chat_id, ' '.join(context.args))
-        for message in messages:
-             await update.message.reply_text(message)
+        self.send_messages_to_user(messages, update)
 
-    async def send_subscribed_games(self, context: ContextTypes.DEFAULT_TYPE):
+    async def periodic_update_checker(self, context: ContextTypes.DEFAULT_TYPE):
+
+        # Handle Game Updates:
         games = GameCrawler().get_all_games()
         gamePersistenceHandler = GamePersistenceHandler()
-        games_up_to_date = gamePersistenceHandler.check_dv_up_to_date(games)
+        games_up_to_date = gamePersistenceHandler.check_games_up_to_date(games)
         if not games_up_to_date:
+            print("Games changed.")
             changes = gamePersistenceHandler.get_changed_games(games)
             userPersistenceHandler = UserPersistenceHandler()
             users = userPersistenceHandler.get_users()
@@ -130,6 +128,26 @@ class TelegramHandler:
                     for message in messages:
                         await context.bot.send_message(chat_id=user.chat_id, text=message)
             gamePersistenceHandler.update_games(games)
+
+        # Handle Table Updates:
+        table = TableCrawler().get_table()
+        tablePersistenceHandler = TablePersistenceHandler()
+        table_up_to_date = tablePersistenceHandler.check_table_up_to_date(table)
+        if not table_up_to_date:
+            print("Table changed.")
+            changes = tablePersistenceHandler.get_changed_table_entries(table)
+            userPersistenceHandler = UserPersistenceHandler()
+            users = userPersistenceHandler.get_users()
+            for user in users:
+                messages = commands.get_user_subscribed_changed_table_message(changes, user)
+                if len(messages) > 0:
+                    for message in messages:
+                        await context.bot.send_message(chat_id=user.chat_id, text=message)
+            tablePersistenceHandler.update_table(table)
+
+    async def send_messages_to_user(self, messages, update):
+        for message in messages:
+            await update.message.reply_text(message)
 
 def main() -> None:
     logging.basicConfig(

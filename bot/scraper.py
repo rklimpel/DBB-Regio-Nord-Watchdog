@@ -21,7 +21,7 @@ class DBBRegioCrawler():
             button = self.driver.find_element(By.XPATH, "//button[contains(text(), 'AKZEPTIEREN')]")
             button.click()
         except:
-            print("There is no accept button to click.")
+            pass
 
     def read_webpage(self, url):
         self.driver.get(self.url)
@@ -60,17 +60,19 @@ class TableCrawler(DBBRegioCrawler):
         table_data = self.read_table_from_page(self.url)
         standings = []
         for row in table_data:
-            standings.append({
-                "position": row[0],
-                "team": row[1],
-                "games": row[2],
-                "wins": row[3],
-                "loses": row[4],
-                "points": str(int(row[5].split(":")[0]) - int(row[5].split(":")[1])),
-                "points_made": row[5].split(":")[0],
-                "points_against": row[5].split(":")[1],
-                "points_difference": str(int(row[6].split(":")[0]) - int(row[6].split(":")[1])),
-            })
+            standings.append(
+                TableEntry({
+                    "position": row[0],
+                    "team": row[1],
+                    "games": row[2],
+                    "wins": row[3],
+                    "loses": row[4],
+                    "points": str(int(row[5].split(":")[0]) - int(row[5].split(":")[1])),
+                    "points_made": row[5].split(":")[0],
+                    "points_against": row[5].split(":")[1],
+                    "points_difference": str(int(row[6].split(":")[0]) - int(row[6].split(":")[1])),
+                })
+            )
         return standings
 
 class GameCrawler(DBBRegioCrawler):

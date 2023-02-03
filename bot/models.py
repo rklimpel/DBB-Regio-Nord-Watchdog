@@ -42,31 +42,48 @@ class Game():
         return self.to_dict() == other.to_dict()
 
 class TableEntry():
-    rank = ""
+    position = ""
     team = ""
     games = ""
     wins = ""
-    losses = ""
+    loses = ""
     points = ""
+    points_made = ""
+    points_against = ""
+    points_difference = ""
 
     def __init__(self, entry):
-        self.rank = entry["rank"]
-        self.team = entry["team"]
-        self.games = entry["games"]
-        self.wins = entry["wins"]
-        self.losses = entry["losses"]
-        self.points = entry["points"]
+        if 'position' in entry.keys(): self.position = entry["position"]
+        if 'team' in entry.keys(): self.team = entry["team"]
+        if 'games' in entry.keys(): self.games = entry["games"]
+        if 'wins' in entry.keys(): self.wins = entry["wins"]
+        if 'loses' in entry.keys(): self.loses = entry["loses"]
+        if 'points' in entry.keys(): self.points = entry["points"]
+        if 'points_made' in entry.keys(): self.points_made = entry["points_made"]
+        if 'points_against' in entry.keys(): self.points_against = entry["points_against"]
+        if 'points_difference' in entry.keys(): self.points_difference = entry["points_difference"]
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
-            "rank": self.rank,
+            "position": self.position,
             "team": self.team,
             "games": self.games,
             "wins": self.wins,
-            "losses": self.losses,
-            "points": self.points
+            "loses": self.loses,
+            "points": self.points,
+            "points_made": self.points_made,
+            "points_against": self.points_against,
+            "points_difference": self.points_difference,
         }
-    
+
+    def __str__(self) -> str:
+        return str(self.to_dict())
+
+    def __repr__(self) -> str:
+        return str(self.to_dict())
+
+    def __eq__(self, other) -> str:
+        return self.to_dict() == other.to_dict()
 
 class User():
     name=""
